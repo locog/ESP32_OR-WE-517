@@ -1,5 +1,5 @@
-//dev branch testing ...just created
-#include "credentials.h"
+#include "credentials.h"         // https://arduino.stackexchange.com/questions/40411/hiding-wlan-password-when-pushing-to-github
+
 #include <WiFi.h>               // check this later https://randomnerdtutorials.com/esp32-useful-wi-fi-functions-arduino/
 #include <ESPAsyncWebServer.h> //https://randomnerdtutorials.com/esp32-async-web-server-espasyncwebserver-library/
                                //https://github.com/me-no-dev/ESPAsyncWebServer
@@ -148,11 +148,26 @@ float From32HexToDec (byte val1, byte val2, byte val3, byte val4){
 void loop() {
   
 // ************************  SEND DATA TO DEVICE ************************* 
+
+
 // https://unserver.xyz/modbus-guide/#modbus-rtu-data-frame-section
 // CRC calculator https://www.simplymodbus.ca/crc.xls
 // OR-WE-517 modbus registers list https://b2b.orno.pl/download-resource/26065/
-// byte sendmsg[] = {0x01, 0x03, 0x00, 0x1C, 0x00, 0x01, 0x45, 0xCC};
-//byte sendmsg[] = {0x01, 0x03, 0x00, 0x1C, 0x00, 0x02, 0x05, 0xCD}; 
+// ORNO.pl Modbus software OR-WE RS-485 software.zip  download from https://b2b.orno.pl/download-resource/26062/
+
+
+// I'm interested in "FC" Read Holding Registers - 0x03 ...message looks like this:
+//  ID   FC   ADDR     NUM    CRC
+// [01] [03] [00 0E] [00 16] [A5 A7]
+
+// Then check OR-WE-517_MODBUS_Registers_List.pdf . 
+// I'm interested in registers starting with "ADDR"  HEX 000E   - L1 Voltage and ending by HEX 0022 - L3 Active Power 
+// This register addresses don't go one by one but they skip one address like 14,16,18,... (00E,0010,0012, ...)
+// I need 11 register starting with 000E but it mean with every second address empty it is 22 register. 22 in DEC is 0016 HEX
+// NUM is 0016
+// The last CRC is Check sum from previous values. I can't count it but I found crc.xls ...just put whole ID FC ADDR NUM (like 0103000E0016) 
+// and it give you CRC A5C7 .
+
 
 byte sendmsg[] = {0x01, 0x03, 0x00, 0x0E, 0x00, 0x16, 0xA5, 0xC7}; 
 
@@ -163,6 +178,8 @@ for(i = 0 ; i < sendmsglen ; i++){
  }
 
 // This part is commented as I used it during development and it is not needed later.
+// It is usable to send request for one register value. In this example (and always) is also 2 addresses requsted (NUM 02).
+// You can find exact message in OR-WE RS-485 software.zip mentioned on top.
 // Results looks like this:
 
 // Message sent to device: 1301C025CD
